@@ -62,6 +62,27 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Beer theme colors
+        beer: {
+          50: "#fef3c7",
+          100: "#fde68a",
+          200: "#fcd34d",
+          300: "#f59e0b",
+          400: "#d97706",
+          500: "#b45309",
+          600: "#92400e",
+          700: "#78350f",
+          800: "#451a03",
+          900: "#1c0a00",
+        },
+        foam: {
+          50: "#fffbeb",
+          100: "#fef3c7",
+          200: "#fde68a",
+          300: "#fcd34d",
+          400: "#fbbf24",
+          500: "#f59e0b",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
