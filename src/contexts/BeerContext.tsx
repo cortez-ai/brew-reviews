@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useReducer, ReactNode } from "react";
 import { Beer, BeerFilters } from "@/types/beer";
+import React, { createContext, ReactNode, useContext, useReducer } from "react";
 
 interface BeerState {
   beers: Beer[];
@@ -76,7 +76,7 @@ export function BeerProvider({ children }: { children: ReactNode }) {
       try {
         const beers = JSON.parse(savedBeers).map((beer: any) => ({
           ...beer,
-          dateAdded: new Date(beer.dateAdded),
+          dateAdded: new Date(beer.dateAdded), // this whole functionality should be in a beerService_local.getBeers()
         }));
         dispatch({ type: "LOAD_BEERS", payload: beers });
       } catch (error) {

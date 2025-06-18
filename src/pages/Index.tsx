@@ -1,19 +1,19 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { useBeer } from "@/contexts/BeerContext";
 import { BeerCard } from "@/components/BeerCard";
-import { FilterSort } from "@/components/FilterSort";
 import { BeerForm } from "@/components/BeerForm";
+import { FilterSort } from "@/components/FilterSort";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Search, Beer } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useBeer } from "@/contexts/BeerContext";
 import { Beer as BeerType } from "@/types/beer";
+import { Beer, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Index = () => {
   const { getFilteredBeers, state, setFilters, addBeer } = useBeer();

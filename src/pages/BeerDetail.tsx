@@ -1,10 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useBeer } from "@/contexts/BeerContext";
 import { BeerForm } from "@/components/BeerForm";
-import { RatingDisplay, RatingBar } from "@/components/RatingDisplay";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { RatingBar, RatingDisplay } from "@/components/RatingDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,16 +10,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  ArrowLeft,
-  Edit3,
-  Trash2,
-  Calendar,
-  MessageSquare,
-  Beer,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useBeer } from "@/contexts/BeerContext";
 import { formatDate } from "@/lib/beer-utils";
 import { Beer as BeerType } from "@/types/beer";
+import {
+  ArrowLeft,
+  Beer,
+  Calendar,
+  Edit3,
+  MessageSquare,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 const BeerDetail = () => {

@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { Beer } from "@/types/beer";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
-import { RatingDisplay } from "./RatingDisplay";
+import { Textarea } from "@/components/ui/textarea";
 import { validateBeer } from "@/lib/beer-utils";
+import { Beer } from "@/types/beer";
+import { useState } from "react";
 import { toast } from "sonner";
+import { RatingDisplay } from "./RatingDisplay";
 
 interface BeerFormProps {
   beer?: Beer;
@@ -47,10 +47,6 @@ export function BeerForm({
     toast.success(
       isEditing ? "Beer updated successfully!" : "Beer added successfully!",
     );
-  };
-
-  const handleRatingChange = (value: number[]) => {
-    setFormData({ ...formData, rating: value[0] });
   };
 
   return (
@@ -116,7 +112,9 @@ export function BeerForm({
             <div className="space-y-3">
               <Slider
                 value={[formData.rating]}
-                onValueChange={handleRatingChange}
+                onValueChange={(e) =>
+                  setFormData({ ...formData, rating: e[0] })
+                }
                 max={10}
                 min={1}
                 step={0.1}
