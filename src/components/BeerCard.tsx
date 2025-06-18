@@ -50,7 +50,8 @@ export function BeerCard({ beer, onClick }: BeerCardProps) {
 
         {beer.comments && (
           <p className="text-sm text-muted-foreground line-clamp-2">
-            {beer.comments}
+            // {beer.comments}
+            A
           </p>
         )}
       </CardContent>
