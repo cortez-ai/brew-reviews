@@ -23,6 +23,13 @@ const Login = () => {
   // Get the intended destination from location state
   const from = location.state?.from?.pathname || "/";
 
+  const handleAutoFill = () => {
+    setFormData({
+      email: "demo@brewreviews.com",
+      password: "password123",
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors([]);
@@ -159,7 +166,14 @@ const Login = () => {
             {/* Demo hint */}
             <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800">
-                <strong>Demo:</strong> Use any email and password to sign in
+                <strong>Demo:</strong> Use any email and password to sign in, or{" "}
+                <button
+                  type="button"
+                  onClick={handleAutoFill}
+                  className="underline hover:no-underline text-amber-900 font-medium"
+                >
+                  auto-fill demo credentials
+                </button>
               </p>
             </div>
           </CardContent>

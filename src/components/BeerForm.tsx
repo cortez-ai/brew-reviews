@@ -1,18 +1,18 @@
+import { useState } from "react";
+import { Beer, CreateBeerData, UpdateBeerData } from "@/types/beer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
-import { validateBeer } from "@/lib/beer-utils";
-import { Beer } from "@/types/beer";
-import { useState } from "react";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { RatingDisplay } from "./RatingDisplay";
+import { validateBeer } from "@/lib/beer-utils";
+import { toast } from "sonner";
 
 interface BeerFormProps {
   beer?: Beer;
-  onSubmit: (beer: Omit<Beer, "id" | "dateAdded">) => void;
+  onSubmit: (beer: CreateBeerData) => Promise<void>;
   onCancel: () => void;
   isEditing?: boolean;
 }
@@ -32,7 +32,9 @@ export function BeerForm({
 
   const [errors, setErrors] = useState<string[]>([]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const validationErrors = validateBeer(formData);
@@ -43,10 +45,23 @@ export function BeerForm({
     }
 
     setErrors([]);
-    onSubmit(formData);
-    toast.success(
-      isEditing ? "Beer updated successfully!" : "Beer added successfully!",
-    );
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(formData);
+      toast.success(
+        isEditing ? "Beer updated successfully!" : "Beer added successfully!",
+      );
+    } catch (error) {
+      console.error("Failed to save beer:", error);
+      toast.error("Failed to save beer. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRatingChange = (value: number[]) => {
+    setFormData({ ...formData, rating: value[0] });
   };
 
   return (
@@ -112,9 +127,7 @@ export function BeerForm({
             <div className="space-y-3">
               <Slider
                 value={[formData.rating]}
-                onValueChange={(e) =>
-                  setFormData({ ...formData, rating: e[0] })
-                }
+                onValueChange={handleRatingChange}
                 max={10}
                 min={1}
                 step={0.1}
@@ -144,10 +157,19 @@ export function BeerForm({
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Button type="submit" className="flex-1">
-              {isEditing ? "Update Beer" : "Add Beer"}
+            <Button type="submit" className="flex-1" disabled={isSubmitting}>
+              {isSubmitting
+                ? "Saving..."
+                : isEditing
+                  ? "Update Beer"
+                  : "Add Beer"}
             </Button>
-            <Button type="button" variant="outline" onClick={onCancel}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           </div>

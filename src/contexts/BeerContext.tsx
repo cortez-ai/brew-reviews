@@ -1,25 +1,40 @@
-import { Beer, BeerFilters } from "@/types/beer";
-import React, { createContext, ReactNode, useContext, useReducer } from "react";
+import React, { createContext, useContext, useReducer, ReactNode } from "react";
+import {
+  Beer,
+  BeerFilters,
+  CreateBeerData,
+  UpdateBeerData,
+} from "@/types/beer";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  createBeerReview,
+  getBeerReviewsByUser,
+  updateBeerReview,
+  deleteBeerReview,
+} from "@/lib/database";
 
 interface BeerState {
   beers: Beer[];
   filters: BeerFilters;
+  isLoading: boolean;
 }
 
 type BeerAction =
+  | { type: "SET_BEERS"; payload: Beer[] }
   | { type: "ADD_BEER"; payload: Beer }
   | { type: "UPDATE_BEER"; payload: Beer }
-  | { type: "DELETE_BEER"; payload: string }
+  | { type: "DELETE_BEER"; payload: number }
   | { type: "SET_FILTERS"; payload: BeerFilters }
-  | { type: "LOAD_BEERS"; payload: Beer[] };
+  | { type: "SET_LOADING"; payload: boolean };
 
 interface BeerContextType {
   state: BeerState;
-  addBeer: (beer: Omit<Beer, "id" | "dateAdded">) => void;
-  updateBeer: (beer: Beer) => void;
-  deleteBeer: (id: string) => void;
+  addBeer: (beer: CreateBeerData) => Promise<void>;
+  updateBeer: (beer: UpdateBeerData) => Promise<void>;
+  deleteBeer: (id: number) => Promise<void>;
   setFilters: (filters: BeerFilters) => void;
   getFilteredBeers: () => Beer[];
+  loadBeers: () => Promise<void>;
 }
 
 const BeerContext = createContext<BeerContextType | undefined>(undefined);
@@ -30,14 +45,21 @@ const initialState: BeerState = {
     sortBy: "date",
     sortOrder: "desc",
   },
+  isLoading: false,
 };
 
 function beerReducer(state: BeerState, action: BeerAction): BeerState {
   switch (action.type) {
+    case "SET_BEERS":
+      return {
+        ...state,
+        beers: action.payload,
+        isLoading: false,
+      };
     case "ADD_BEER":
       return {
         ...state,
-        beers: [...state.beers, action.payload],
+        beers: [action.payload, ...state.beers],
       };
     case "UPDATE_BEER":
       return {
@@ -56,10 +78,10 @@ function beerReducer(state: BeerState, action: BeerAction): BeerState {
         ...state,
         filters: action.payload,
       };
-    case "LOAD_BEERS":
+    case "SET_LOADING":
       return {
         ...state,
-        beers: action.payload,
+        isLoading: action.payload,
       };
     default:
       return state;
@@ -68,43 +90,108 @@ function beerReducer(state: BeerState, action: BeerAction): BeerState {
 
 export function BeerProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(beerReducer, initialState);
+  const { state: authState } = useAuth();
 
-  // Load beers from localStorage on mount
+  // Load beers when user authenticates
   React.useEffect(() => {
-    const savedBeers = localStorage.getItem("beerReviews");
-    if (savedBeers) {
-      try {
-        const beers = JSON.parse(savedBeers).map((beer: any) => ({
-          ...beer,
-          dateAdded: new Date(beer.dateAdded), // this whole functionality should be in a beerService_local.getBeers()
-        }));
-        dispatch({ type: "LOAD_BEERS", payload: beers });
-      } catch (error) {
-        console.error("Failed to load beers from localStorage:", error);
-      }
+    if (authState.isAuthenticated && authState.user) {
+      loadBeers();
+    } else {
+      // Clear beers when user logs out
+      dispatch({ type: "SET_BEERS", payload: [] });
     }
-  }, []);
+  }, [authState.isAuthenticated, authState.user]);
 
-  // Save beers to localStorage whenever beers change
-  React.useEffect(() => {
-    localStorage.setItem("beerReviews", JSON.stringify(state.beers));
-  }, [state.beers]);
+  const loadBeers = async () => {
+    if (!authState.user) return;
 
-  const addBeer = (beerData: Omit<Beer, "id" | "dateAdded">) => {
-    const beer: Beer = {
-      ...beerData,
-      id: crypto.randomUUID(),
-      dateAdded: new Date(),
-    };
-    dispatch({ type: "ADD_BEER", payload: beer });
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const beers = await getBeerReviewsByUser(authState.user.id);
+
+      // Convert date strings to Date objects and ensure rating is a number
+      const formattedBeers = beers.map((beer) => ({
+        ...beer,
+        rating:
+          typeof beer.rating === "string"
+            ? parseFloat(beer.rating)
+            : beer.rating,
+        date_added: new Date(beer.date_added),
+      }));
+
+      dispatch({ type: "SET_BEERS", payload: formattedBeers });
+    } catch (error) {
+      console.error("Failed to load beers:", error);
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
   };
 
-  const updateBeer = (beer: Beer) => {
-    dispatch({ type: "UPDATE_BEER", payload: beer });
+  const addBeer = async (beerData: CreateBeerData) => {
+    if (!authState.user) throw new Error("User not authenticated");
+
+    try {
+      const newBeer = await createBeerReview(authState.user.id, beerData);
+      dispatch({
+        type: "ADD_BEER",
+        payload: {
+          ...newBeer,
+          rating:
+            typeof newBeer.rating === "string"
+              ? parseFloat(newBeer.rating)
+              : newBeer.rating,
+          date_added: new Date(newBeer.date_added),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to add beer:", error);
+      throw error;
+    }
   };
 
-  const deleteBeer = (id: string) => {
-    dispatch({ type: "DELETE_BEER", payload: id });
+  const updateBeer = async (beerData: UpdateBeerData) => {
+    if (!authState.user) throw new Error("User not authenticated");
+
+    try {
+      const updatedBeer = await updateBeerReview(
+        beerData.id,
+        authState.user.id,
+        {
+          name: beerData.name,
+          image: beerData.image,
+          rating: beerData.rating,
+          comments: beerData.comments,
+        },
+      );
+
+      if (updatedBeer) {
+        dispatch({
+          type: "UPDATE_BEER",
+          payload: {
+            ...updatedBeer,
+            rating:
+              typeof updatedBeer.rating === "string"
+                ? parseFloat(updatedBeer.rating)
+                : updatedBeer.rating,
+            date_added: new Date(updatedBeer.date_added),
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Failed to update beer:", error);
+      throw error;
+    }
+  };
+
+  const deleteBeer = async (id: number) => {
+    if (!authState.user) throw new Error("User not authenticated");
+
+    try {
+      await deleteBeerReview(id, authState.user.id);
+      dispatch({ type: "DELETE_BEER", payload: id });
+    } catch (error) {
+      console.error("Failed to delete beer:", error);
+      throw error;
+    }
   };
 
   const setFilters = (filters: BeerFilters) => {
@@ -124,7 +211,7 @@ export function BeerProvider({ children }: { children: ReactNode }) {
           comparison = a.rating - b.rating;
           break;
         case "date":
-          comparison = a.dateAdded.getTime() - b.dateAdded.getTime();
+          comparison = a.date_added.getTime() - b.date_added.getTime();
           break;
       }
 
@@ -143,6 +230,7 @@ export function BeerProvider({ children }: { children: ReactNode }) {
         deleteBeer,
         setFilters,
         getFilteredBeers,
+        loadBeers,
       }}
     >
       {children}

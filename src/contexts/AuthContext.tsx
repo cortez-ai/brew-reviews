@@ -5,10 +5,13 @@ import React, {
   ReactNode,
   useEffect,
 } from "react";
+import { createUser, getUserByEmail, initDatabase } from "@/lib/database";
 
 interface User {
+  id: number;
   email: string;
   name: string;
+  created_at?: Date;
 }
 
 interface AuthState {
@@ -65,21 +68,42 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Load user from localStorage on mount
+  // Initialize database and load user from localStorage on mount
   useEffect(() => {
-    const savedUser = localStorage.getItem("brewreviewsUser");
-    if (savedUser) {
+    const initializeAuth = async () => {
       try {
-        const user = JSON.parse(savedUser);
-        dispatch({ type: "LOGIN_SUCCESS", payload: user });
+        // Initialize database tables
+        await initDatabase();
+
+        // Load user from localStorage
+        const savedUser = localStorage.getItem("brewreviewsUser");
+        if (savedUser) {
+          try {
+            const user = JSON.parse(savedUser);
+            // Verify user still exists in database
+            const dbUser = await getUserByEmail(user.email);
+            if (dbUser) {
+              dispatch({ type: "LOGIN_SUCCESS", payload: dbUser });
+            } else {
+              // User no longer exists in database
+              localStorage.removeItem("brewreviewsUser");
+              dispatch({ type: "SET_LOADING", payload: false });
+            }
+          } catch (error) {
+            console.error("Failed to load user from localStorage:", error);
+            localStorage.removeItem("brewreviewsUser");
+            dispatch({ type: "SET_LOADING", payload: false });
+          }
+        } else {
+          dispatch({ type: "SET_LOADING", payload: false });
+        }
       } catch (error) {
-        console.error("Failed to load user from localStorage:", error);
-        localStorage.removeItem("brewreviewsUser");
+        console.error("Failed to initialize auth:", error);
         dispatch({ type: "SET_LOADING", payload: false });
       }
-    } else {
-      dispatch({ type: "SET_LOADING", payload: false });
-    }
+    };
+
+    initializeAuth();
   }, []);
 
   // Save user to localStorage whenever user changes
@@ -94,21 +118,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     dispatch({ type: "SET_LOADING", payload: true });
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // Simulate API delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    // Mock authentication - accept any email/password combination
-    if (email && password) {
-      const user: User = {
-        email,
-        name: email.split("@")[0], // Use part before @ as name
-      };
-      dispatch({ type: "LOGIN_SUCCESS", payload: user });
-      return true;
+      // For demo purposes, accept any email/password combination
+      if (email && password) {
+        // Check if user exists, if not create them
+        let user = await getUserByEmail(email);
+        if (!user) {
+          const name = email.split("@")[0]; // Use part before @ as name
+          user = await createUser(email, name);
+        }
+
+        if (user) {
+          dispatch({ type: "LOGIN_SUCCESS", payload: user });
+          return true;
+        }
+      }
+
+      dispatch({ type: "SET_LOADING", payload: false });
+      return false;
+    } catch (error) {
+      console.error("Login failed:", error);
+      dispatch({ type: "SET_LOADING", payload: false });
+      return false;
     }
-
-    dispatch({ type: "SET_LOADING", payload: false });
-    return false;
   };
 
   const logout = () => {

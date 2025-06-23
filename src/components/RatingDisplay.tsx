@@ -14,6 +14,10 @@ export function RatingDisplay({
   size = "md",
   className = "",
 }: RatingDisplayProps) {
+  // Ensure rating is a number
+  const numericRating =
+    typeof rating === "string" ? parseFloat(rating) : rating;
+
   const sizeClasses = {
     sm: "text-sm",
     md: "text-lg",
@@ -27,8 +31,8 @@ export function RatingDisplay({
   };
 
   if (showStars) {
-    const filledStars = Math.floor(rating / 2);
-    const hasHalfStar = rating % 2 >= 1;
+    const filledStars = Math.floor(numericRating / 2);
+    const hasHalfStar = numericRating % 2 >= 1;
     const emptyStars = 5 - filledStars - (hasHalfStar ? 1 : 0);
 
     return (
@@ -61,8 +65,10 @@ export function RatingDisplay({
           />
         ))}
 
-        <span className={`ml-1 ${sizeClasses[size]} ${getRatingColor(rating)}`}>
-          {rating.toFixed(1)}
+        <span
+          className={`ml-1 ${sizeClasses[size]} ${getRatingColor(numericRating)}`}
+        >
+          {numericRating.toFixed(1)}
         </span>
       </div>
     );
@@ -70,8 +76,8 @@ export function RatingDisplay({
 
   return (
     <div className={`inline-flex items-center ${className}`}>
-      <span className={`${sizeClasses[size]} ${getRatingColor(rating)}`}>
-        {rating.toFixed(1)}
+      <span className={`${sizeClasses[size]} ${getRatingColor(numericRating)}`}>
+        {numericRating.toFixed(1)}
       </span>
       <span className={`ml-1 ${sizeClasses[size]} text-muted-foreground`}>
         /10
@@ -86,17 +92,20 @@ interface RatingBarProps {
 }
 
 export function RatingBar({ rating, className = "" }: RatingBarProps) {
-  const percentage = (rating / 10) * 100;
+  // Ensure rating is a number
+  const numericRating =
+    typeof rating === "string" ? parseFloat(rating) : rating;
+  const percentage = (numericRating / 10) * 100;
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className={`h-full transition-all duration-300 ${getRatingBgColor(rating)}`}
+          className={`h-full transition-all duration-300 ${getRatingBgColor(numericRating)}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <RatingDisplay rating={rating} size="sm" />
+      <RatingDisplay rating={numericRating} size="sm" />
     </div>
   );
 }

@@ -1,5 +1,11 @@
+import { useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { useBeer } from "@/contexts/BeerContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { BeerForm } from "@/components/BeerForm";
-import { RatingBar, RatingDisplay } from "@/components/RatingDisplay";
+import { RatingDisplay, RatingBar } from "@/components/RatingDisplay";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,31 +16,35 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { useBeer } from "@/contexts/BeerContext";
-import { formatDate } from "@/lib/beer-utils";
-import { Beer as BeerType } from "@/types/beer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   ArrowLeft,
-  Beer,
-  Calendar,
   Edit3,
-  MessageSquare,
   Trash2,
+  Calendar,
+  MessageSquare,
+  Beer,
+  User,
+  LogOut,
 } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { formatDate } from "@/lib/beer-utils";
+import { CreateBeerData } from "@/types/beer";
 import { toast } from "sonner";
 
 const BeerDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { state, updateBeer, deleteBeer } = useBeer();
+  const { state: authState, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  const beer = state.beers.find((b) => b.id === id);
+  const beer = state.beers.find((b) => b.id === parseInt(id || "0", 10));
 
   if (!beer) {
     return (
@@ -60,18 +70,28 @@ const BeerDetail = () => {
     );
   }
 
-  const handleUpdateBeer = (beerData: Omit<BeerType, "id" | "dateAdded">) => {
-    updateBeer({
-      ...beer,
-      ...beerData,
-    });
-    setIsEditing(false);
+  const handleUpdateBeer = async (beerData: CreateBeerData) => {
+    try {
+      await updateBeer({
+        id: beer.id,
+        ...beerData,
+      });
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to update beer:", error);
+      // Error is handled in the form component
+    }
   };
 
-  const handleDeleteBeer = () => {
-    deleteBeer(beer.id);
-    toast.success("Beer deleted successfully!");
-    navigate("/");
+  const handleDeleteBeer = async () => {
+    try {
+      await deleteBeer(beer.id);
+      toast.success("Beer deleted successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error("Failed to delete beer:", error);
+      toast.error("Failed to delete beer. Please try again.");
+    }
   };
 
   if (isEditing) {
@@ -129,6 +149,24 @@ const BeerDetail = () => {
                 <Trash2 className="w-4 h-4" />
                 Delete
               </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <User className="w-4 h-4" />
+                    {authState.user?.name}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="gap-2 text-destructive"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -162,7 +200,7 @@ const BeerDetail = () => {
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
-                  <span>Added {formatDate(beer.dateAdded)}</span>
+                  <span>Added {formatDate(beer.date_added)}</span>
                 </div>
               </div>
             </div>

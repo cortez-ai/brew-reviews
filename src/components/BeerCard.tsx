@@ -38,7 +38,7 @@ export function BeerCard({ beer, onClick }: BeerCardProps) {
         <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            <span>{formatDate(beer.dateAdded)}</span>
+            <span>{formatDate(beer.date_added)}</span>
           </div>
           {beer.comments && (
             <div className="flex items-center gap-1">

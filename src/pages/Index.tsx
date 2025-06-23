@@ -1,22 +1,30 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useBeer } from "@/contexts/BeerContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { BeerCard } from "@/components/BeerCard";
-import { BeerForm } from "@/components/BeerForm";
 import { FilterSort } from "@/components/FilterSort";
+import { BeerForm } from "@/components/BeerForm";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { useBeer } from "@/contexts/BeerContext";
-import { Beer as BeerType } from "@/types/beer";
-import { Beer, Plus, Search } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Beer, User, LogOut } from "lucide-react";
+import { CreateBeerData } from "@/types/beer";
 
 const Index = () => {
   const { getFilteredBeers, state, setFilters, addBeer } = useBeer();
+  const { state: authState, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -24,9 +32,14 @@ const Index = () => {
     beer.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const handleAddBeer = (beerData: Omit<BeerType, "id" | "dateAdded">) => {
-    addBeer(beerData);
-    setShowAddForm(false);
+  const handleAddBeer = async (beerData: CreateBeerData) => {
+    try {
+      await addBeer(beerData);
+      setShowAddForm(false);
+    } catch (error) {
+      console.error("Failed to add beer:", error);
+      // Error is handled in the form component
+    }
   };
 
   return (
@@ -49,13 +62,33 @@ const Index = () => {
               </div>
             </div>
 
-            <Button
-              onClick={() => setShowAddForm(true)}
-              className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
-            >
-              <Plus className="w-4 h-4" />
-              Add Beer
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600"
+              >
+                <Plus className="w-4 h-4" />
+                Add Beer
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <User className="w-4 h-4" />
+                    {authState.user?.name}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={logout}
+                    className="gap-2 text-destructive"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
@@ -77,7 +110,14 @@ const Index = () => {
         </div>
 
         {/* Beer Grid */}
-        {filteredBeers.length > 0 ? (
+        {state.isLoading ? (
+          <div className="text-center py-16">
+            <div className="w-12 h-12 mx-auto mb-4 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
+            <p className="text-muted-foreground">
+              Loading your beer reviews...
+            </p>
+          </div>
+        ) : filteredBeers.length > 0 ? (
           <>
             <div className="mb-4 text-sm text-muted-foreground">
               Showing {filteredBeers.length} beer

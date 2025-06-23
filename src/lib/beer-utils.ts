@@ -43,7 +43,9 @@ export function formatDate(date: Date): string {
 /**
  * Validate beer form data
  */
-export function validateBeer(data: Partial<Beer>): string[] {
+export function validateBeer(
+  data: Partial<Pick<Beer, "name" | "image" | "rating" | "comments">>,
+): string[] {
   const errors: string[] = [];
 
   if (!data.name?.trim()) {
@@ -54,8 +56,12 @@ export function validateBeer(data: Partial<Beer>): string[] {
     errors.push("Beer image is required");
   }
 
-  if (data.rating == null || data.rating < 1 || data.rating > 10) {
+  if (data.rating === undefined || data.rating < 1 || data.rating > 10) {
     errors.push("Rating must be between 1 and 10");
+  }
+
+  if (!data.comments?.trim()) {
+    errors.push("Comments are required");
   }
 
   return errors;
